@@ -1,0 +1,16 @@
+bundle agent runZypperPatchCheck
+{
+        vars:
+                "patch_check" string => execresult("/usr/bin/zypper lp", noshell);
+
+        classes:
+                "patch_check_already_reported" expression => fileexists("/var/cfengine/state/patch_check_already_reported"), scope => "bundle";
+
+        files:
+          patch_check_file_written_repaired::
+                "/var/cfengine/state/patch_check_already_reported" create => "true";
+
+        reports:
+          SLES11.!patch_check_already_reported::
+                "$(patch_check)" report_to_file => "/var/cfengine/state/patch.check", classes => default:results("bundle", "patch_check_file_written");
+}
