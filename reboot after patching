@@ -1,3 +1,7 @@
+### Consider that the class "patched_repaired" which conditions the file /var/cfengine/state/patch.check to
+### be written, is defined in another promise/bundle. This file is necessary for the "NoMorePatch" class to 
+### get set which is one condition for rebooting.
+
 bundle agent reboot
 {
         methods:
@@ -18,7 +22,7 @@ bundle agent search4patch
                  "/var/cfengine/state/rebooted_node" create => "true";
 
         commands:
-          !am_policy_hub.!NoMorePatch.!rebooted_node.time2reboot::
+          !am_policy_hub.NoMorePatch.!rebooted_node.time2reboot::
                   "/sbin/reboot" classes => default:results("bundle", "rebooted");
 
         reports:
@@ -27,7 +31,6 @@ bundle agent search4patch
                 The file /var/cfengine/state/rebooted_node was created. As long as this file exists 
                 zypper state \"No updates found.\" won't cause another reboot.";
 }
-
 
 bundle agent runZypperPatchCheck
 {
