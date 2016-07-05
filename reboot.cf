@@ -34,7 +34,6 @@ bundle agent runZypperPatchCheck
         vars:
                 "patch_check" string => execresult("/usr/bin/zypper lp", noshell);
         reports:
-          patch_repaired::
+          MyNamespace:patch_repaired::
                 "$(patch_check)" report_to_file => "/var/cfengine/state/patch.check", classes => default:results("namespace", "patch_check_file_written");
-                #action => if_elapsed(30);
 }
