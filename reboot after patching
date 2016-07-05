@@ -1,6 +1,8 @@
 ### Consider that the class "patched_repaired" which conditions the file /var/cfengine/state/patch.check to
 ### be written, is defined in another promise/bundle. This file is necessary for the "NoMorePatch" class to 
 ### get set which is one condition for rebooting.
+### Further /var/cfengine/state/patch.check will grow, hence do housekeeping, e.g. by an CFEngine cronpromise
+### or use an ifelapsed that this file will grow to maybe 1MB during your lifetime.
 
 bundle agent reboot
 {
