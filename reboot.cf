@@ -1,0 +1,40 @@
+bundle agent reboot
+{
+        methods:
+          "any" usebundle => search4patch, inherit => "true";
+          "any" usebundle => runZypperPatchCheck, inherit => "true";
+
+}
+
+bundle agent search4patch
+{
+        classes:
+                "rebooted_node" expression => fileexists("/var/cfengine/state/rebooted_node"), scope => "bundle";
+                "NoMorePatch" expression => regline("No updates found.","/var/cfengine/state/patch.check"), scope => "bundle";
+                "time2reboot" expression => islessthan("30","$(sys.uptime)");
+
+        files:
+          rebooted_repaired::
+                 "/var/cfengine/state/rebooted_node" create => "true";
+
+        commands:
+          !am_policy_hub.!NoMorePatch.!rebooted_node.time2reboot::
+                  "/sbin/reboot" classes => default:results("bundle", "rebooted");
+
+        reports:
+          rebooted_repaired::
+                "The node is going to reboot as all patches were installed.
+                The file /var/cfengine/state/rebooted_node was created. As long as this file exists 
+                zypper state \"No updates found.\" won't cause another reboot.";
+}
+
+
+bundle agent runZypperPatchCheck
+{
+        vars:
+                "patch_check" string => execresult("/usr/bin/zypper lp", noshell);
+        reports:
+          patch_repaired::
+                "$(patch_check)" report_to_file => "/var/cfengine/state/patch.check", classes => default:results("namespace", "patch_check_file_written");
+                #action => if_elapsed(30);
+}
