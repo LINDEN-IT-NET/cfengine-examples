@@ -15,10 +15,6 @@ bundle agent detect_disks
 
   classes:
     "sd$(alphabet)_found" expression => fileexists("/dev/sd$(alphabet)"), scope => "namespace";
-
-  reports:
-    "sd$(alphabet)_found"::
-      "sd$(alphabet) is found on the system by CFEngine.";
 }
 
 bundle agent partition_disk
@@ -32,12 +28,6 @@ bundle agent partition_disk
 # o=clear in mem partition table, n=new partition, p=primary p, 1=part.number, w=write p table, q=done (ohne?)
       "/bin/echo -e \"o\nn\np\n1\n\n\nw\" | /sbin/fdisk /dev/sd$(alphabet)"
         classes => default:results("namespace", "disk_partitioned_sd$(alphabet)");
-
-  reports:
-    "sd$(alphabet)_found"::
-      "sd$(alphabet) is found on the system by CFEngine AND seen from 2nd bundle.";
-    "disk_partitioned_sd$(alphabet)_repaired"::
-      "sd$(alphabet)1 is created on sd$(alphabet)._repaired";
 }
 
 bundle agent lvm_on_partition
@@ -65,10 +55,6 @@ bundle agent xfs_on_lv
     "lvcreate_sd$(alphabet)_repaired"::
       "/sbin/mkfs.xfs /dev/vg00sd$(alphabet)/lv00sd$(alphabet)"
         classes => default:results("namespace", "xfs_on_lv_on_sd$(alphabet)");
-
-  reports:
-    "xfs_on_lv_on_sd$(alphabet)_repaired"::
-      "XFS ist auf dem lv00sd$(alphabet)";
 }
 
 bundle agent mount_disk
