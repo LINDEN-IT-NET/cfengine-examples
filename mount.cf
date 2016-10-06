@@ -12,69 +12,72 @@ bundle agent detect_disks
 {
   vars:
     "alphabet" slist => splitstring("b:c:d:e:f:g:h:i:j:k:l:m:n:o:p",":","25");
-
+    "array[$(alphabet)]" string => "$(alphabet)";
   classes:
     "sd$(alphabet)_found" expression => fileexists("/dev/sd$(alphabet)"), scope => "namespace";
+
+  reports:
+    "sd$(alphabet)_found"::
+      "sd$(alphabet) is found on the system by CFEngine.";
 }
 
 bundle agent partition_disk
 {
-  vars:
-    #"alphabet" string => "$(detect_disks.alphabet)";
-    "alphabet" slist => splitstring("b:c:d:e:f:g:h:i:j:k:l:m:n:o:p",":","25");
-
   commands:
-    "sd$(alphabet)_found"::
+    "sd$(detect_disks.alphabet)_found"::
 # o=clear in mem partition table, n=new partition, p=primary p, 1=part.number, w=write p table, q=done (ohne?)
       "/bin/echo -e \"o\nn\np\n1\n\n\nw\" | /sbin/fdisk /dev/sd$(alphabet)"
-        classes => default:results("namespace", "disk_partitioned_sd$(alphabet)");
+        classes => default:results("namespace", "disk_partitioned_sd$(detect_disks.alphabet)");
+
+  reports:
+    "sd$(detect_disks.alphabet)_found"::
+      "sd$(alphabet) is found on the system by CFEngine AND seen from $(this.bundle).";
+    "disk_partitioned_sd$(detect_disks.alphabet)_repaired"::
+      "sd$(alphabet)1 is created on sd$(alphabet)._repaired";
+    any::
+    "alphabet-array[$(alphabet)] = detect_disks.array[$(detect_disks.alphabet)]";
 }
 
 bundle agent lvm_on_partition
 {
-   vars:
-    #"alphabet" string => "$(detect_disks.alphabet)";
-    "alphabet" slist => splitstring("b:c:d:e:f:g:h:i:j:k:l:m:n:o:p",":","25");
-
   commands:
-    "disk_partitioned_sd$(alphabet)_repaired"::
-      "/sbin/vgcreate vg00sd$(alphabet) /dev/sd$(alphabet)"
-        classes => default:results("namespace", "vgcreate_sd$(alphabet)");
-    "vgcreate_sd$(alphabet)_repaired"::
-      "/sbin/lvcreate -n lv00sd$(alphabet) -l100%FREE vg00sd$(alphabet)"
-        classes => default:results("namespace", "lvcreate_sd$(alphabet)");
+    "disk_partitioned_sd$(detect_disks.alphabet)_repaired"::
+      "/sbin/vgcreate vg00sd$(detect_disks.alphabet) /dev/sd$(detect_disks.alphabet)"
+        classes => default:results("namespace", "vgcreate_sd$(detect_disks.alphabet)");
+    "vgcreate_sd$(detect_disks.alphabet)_repaired"::
+      "/sbin/lvcreate -n lv00sd$(detect_disks.alphabet) -l100%FREE vg00sd$(detect_disks.alphabet)"
+        classes => default:results("namespace", "lvcreate_sd$(detect_disks.alphabet)");
 }
 
 bundle agent xfs_on_lv
 {
-   vars:
-    #"alphabet" string => "$(detect_disks.alphabet)";
-    "alphabet" slist => splitstring("b:c:d:e:f:g:h:i:j:k:l:m:n:o:p",":","25");
-
   commands:
-    "lvcreate_sd$(alphabet)_repaired"::
-      "/sbin/mkfs.xfs /dev/vg00sd$(alphabet)/lv00sd$(alphabet)"
-        classes => default:results("namespace", "xfs_on_lv_on_sd$(alphabet)");
+    "lvcreate_sd$(detect_disks.alphabet)_repaired"::
+      "/sbin/mkfs.xfs /dev/vg00sd$(detect_disks.alphabet)/lv00sd$(detect_disks.alphabet)"
+        classes => default:results("namespace", "xfs_on_lv_on_sd$(detect_disks.alphabet)");
+
+  reports:
+    "xfs_on_lv_on_sd$(detect_disks.alphabet)_repaired"::
+      "XFS ist auf dem lv00sd$(detect_disks.alphabet)";
 }
 
 bundle agent mount_disk
 {
-  vars:
-    #"alphabet" string => "$(detect_disks.alphabet)";
-    "alphabet" slist => splitstring("b:c:d:e:f:g:h:i:j:k:l:m:n:o:p",":","25");
-
-### /etc/fstab entry for Logical Volume 
+### /etc/fstab Eintrag für das Logical Volume (LV)
   files:
-                "xfs_on_lv_on_sd$(alphabet)_repaired"::
+                "xfs_on_lv_on_sd$(detect_disks.alphabet)_repaired"::
                 "/etc/fstab"
                   create => "true",
-                  edit_line => default:append_if_no_line("/dev/vg00sd$(alphabet)/lv00sd$(alphabet)        /data_disk_$(alphabet)           xfs     defaults        1 2"),
-                    classes => default:if_ok("fstab_line_vg00sd$(alphabet)-lv00sd$(alphabet)_added"),
+                  edit_line => default:append_if_no_line("/dev/vg00sd$(detect_disks.alphabet)/lv00sd$(detect_disks.alphabet)        /data_disk_$(detect_disks.alphabet)           xfs     defaults        1 2"),
+                    classes => default:if_ok("fstab_line_vg00sd$(detect_disks.alphabet)-lv00sd$(detect_disks.alphabet)_added"),
                       comment => "Eintrag in die /etc/fstab.";
 
-### Create mountpoint and mounting
+### Erstellung Mountpoint und mounten
   commands:
-    "xfs_on_lv_on_sd$(alphabet)_repaired"::
-       "/bin/mkdir /data_disk_$(alphabet)";
+    "xfs_on_lv_on_sd$(detect_disks.alphabet)_repaired"::
+       "/bin/mkdir /data_disk_$(detect_disks.alphabet)";
        "/bin/mount -a";
 }
+
+
+
