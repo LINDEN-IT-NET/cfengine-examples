@@ -28,14 +28,6 @@ bundle agent partition_disk
 # o=clear in mem partition table, n=new partition, p=primary p, 1=part.number, w=write p table, q=done (ohne?)
       "/bin/echo -e \"o\nn\np\n1\n\n\nw\" | /sbin/fdisk /dev/sd$(alphabet)"
         classes => default:results("namespace", "disk_partitioned_sd$(detect_disks.alphabet)");
-
-  reports:
-    "sd$(detect_disks.alphabet)_found"::
-      "sd$(alphabet) is found on the system by CFEngine AND seen from $(this.bundle).";
-    "disk_partitioned_sd$(detect_disks.alphabet)_repaired"::
-      "sd$(alphabet)1 is created on sd$(alphabet)._repaired";
-    any::
-    "alphabet-array[$(alphabet)] = detect_disks.array[$(detect_disks.alphabet)]";
 }
 
 bundle agent lvm_on_partition
@@ -58,12 +50,12 @@ bundle agent xfs_on_lv
 
   reports:
     "xfs_on_lv_on_sd$(detect_disks.alphabet)_repaired"::
-      "XFS ist auf dem lv00sd$(detect_disks.alphabet)";
+      "xfs filesystem is written on lv00sd$(detect_disks.alphabet)";
 }
 
 bundle agent mount_disk
 {
-### /etc/fstab Eintrag für das Logical Volume (LV)
+### /etc/fstab entry for LV
   files:
                 "xfs_on_lv_on_sd$(detect_disks.alphabet)_repaired"::
                 "/etc/fstab"
@@ -72,7 +64,7 @@ bundle agent mount_disk
                     classes => default:if_ok("fstab_line_vg00sd$(detect_disks.alphabet)-lv00sd$(detect_disks.alphabet)_added"),
                       comment => "Eintrag in die /etc/fstab.";
 
-### Erstellung Mountpoint und mounten
+### Creating Mountpoint and mounting
   commands:
     "xfs_on_lv_on_sd$(detect_disks.alphabet)_repaired"::
        "/bin/mkdir /data_disk_$(detect_disks.alphabet)";
